@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ru.chernovaf</groupId>
+    <artifactId>serializers-benchmark</artifactId>
+    <version>1.0</version>
+
+    <properties>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <maven.compiler.source>7</maven.compiler.source>
+        <maven.compiler.target>7</maven.compiler.target>
+        <maven.source.plugin.version>2.4</maven.source.plugin.version>
+        <maven.shade.plugin.verion>2.2</maven.shade.plugin.verion>
+        <exec.maven.plugin.version>1.5.0</exec.maven.plugin.version>
+
+        <!-- Java Microbenchmark Harness (JMH) version -->
+        <jmh.version>1.21</jmh.version>
+        <jmh.uberjar.name>benchmarks</jmh.uberjar.name>
+
+        <!-- JMH run options -->
+        <jmh.benchmarks.regexp>.*</jmh.benchmarks.regexp>
+        <jmh.need.fork>true</jmh.need.fork>
+        <jmh.thread.count>1</jmh.thread.count>
+        <jmh.warmup.time.seconds>1</jmh.warmup.time.seconds>
+        <jmh.measurement.time.seconds>1</jmh.measurement.time.seconds>
+        <jmh.should.fail.on.error>true</jmh.should.fail.on.error>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven.shade.plugin.verion}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${jmh.uberjar.name}</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>ru.chernovaf.serializers.benchmark.CliBenchmarksRunner</mainClass>
+                                </transformer>
+                                <!-- Объединяем файлы META-INF/BenchmarkList из ufs-session-benchmarks и ufs-research-app-core -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/BenchmarkList</resource>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <!-- Shading signed JARs will fail without this.
+                                         http://stackoverflow.com/questions/999489/invalid-signature-file-when-attempting-to-run-a-jar -->
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec.maven.plugin.version}</version>
+                <configuration>
+                    <mainClass>ru.chernovaf.serializers.benchmark.CliBenchmarksRunner</mainClass>
+                    <arguments>jmh.benchmarks.regexp=${jmh.benchmarks.regexp},jmh.need.fork=${jmh.need.fork},jmh.thread.count=${jmh.thread.count},jmh.warmup.time.seconds=${jmh.warmup.time.seconds},jmh.measurement.time.seconds=${jmh.measurement.time.seconds},ide.project.dir=${project.basedir},jmh.should.fail.on.error=${jmh.should.fail.on.error}</arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <!-- COMPILE -->
+
+        <!-- Jackson -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
+
+        <!-- JacksonSmile -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-smile</artifactId>
+            <version>2.8.9</version>
+        </dependency>
+
+        <!-- BSON for Jackson -->
+        <dependency>
+            <groupId>de.undercouch</groupId>
+            <artifactId>bson4jackson</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+
+        <!-- BSON MongoDb -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+            <version>3.10.1</version>
+        </dependency>
+
+        <!-- Kryo -->
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>4.0.2</version>
+        </dependency>
+
+        <!-- FST -->
+        <dependency>
+            <groupId>de.ruedigermoeller</groupId>
+            <artifactId>fst</artifactId>
+            <version>2.56</version>
+        </dependency>
+
+        <!-- One Nio -->
+        <!-- В оригинале использовалась версия 1.0.2, но она несовместима с Kryo по транзатной зависимости на Asm -->
+        <dependency>
+            <groupId>ru.odnoklassniki</groupId>
+            <artifactId>one-nio</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>${jmh.version}</version>
+        </dependency>
+
+        <!-- PROVIDED -->
+
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>${jmh.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>
